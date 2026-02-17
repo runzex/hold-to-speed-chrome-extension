@@ -1,6 +1,11 @@
 let isBoosting = false;
 let boostedVideo = null;
 let prevRate = 1;
+<<<<<<< HEAD
+=======
+let boostTimer = null;
+let lastSeenVideo = null;
+>>>>>>> bbec118 (update logo and nes features)
 const DEFAULT_SETTINGS = {
   holdKeyCode: "Backslash",
   boostRate: 3.0,
@@ -57,11 +62,60 @@ function findVideosDeep(root) {
   return videos;
 }
 
+<<<<<<< HEAD
 function getVideo() {
   // Prefer a currently playing video, otherwise just grab the first one.
   const vids = findVideosDeep(document);
   if (vids.length === 0) return null;
   return vids.find((v) => !v.paused) || vids[0];
+=======
+function isVideoVisible(v) {
+  if (!v) return false;
+  const rect = v.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0) return false;
+
+  const visibleX = Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0);
+  const visibleY = Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0);
+  return visibleX > 0 && visibleY > 0;
+}
+
+function getVideo() {
+  // Prefer a visible playing video, then any visible video, then fallback.
+  const vids = findVideosDeep(document);
+  if (vids.length > 0) {
+    const chosen =
+      vids.find((v) => !v.paused && isVideoVisible(v)) ||
+      vids.find((v) => isVideoVisible(v)) ||
+      vids.find((v) => !v.paused) ||
+      vids[0];
+    lastSeenVideo = chosen;
+    return chosen;
+  }
+  return lastSeenVideo;
+}
+
+function eventVideoTarget(event) {
+  if (!event || typeof event.composedPath !== "function") return null;
+  const path = event.composedPath();
+  for (const node of path) {
+    if (node && node.tagName === "VIDEO") return node;
+  }
+  return null;
+}
+
+function registerVideoTracking() {
+  const events = ["play", "playing", "ratechange", "loadedmetadata"];
+  for (const eventName of events) {
+    window.addEventListener(
+      eventName,
+      (event) => {
+        const v = eventVideoTarget(event);
+        if (v) lastSeenVideo = v;
+      },
+      true
+    );
+  }
+>>>>>>> bbec118 (update logo and nes features)
 }
 
 function boostOn() {
@@ -73,11 +127,28 @@ function boostOn() {
   v.playbackRate = settings.boostRate;
   boostedVideo = v;
   isBoosting = true;
+<<<<<<< HEAD
+=======
+  boostTimer = window.setInterval(() => {
+    if (!isBoosting || !boostedVideo) return;
+    if (Math.abs(boostedVideo.playbackRate - settings.boostRate) > 0.01) {
+      boostedVideo.playbackRate = settings.boostRate;
+    }
+    updateHudValue();
+  }, 80);
+>>>>>>> bbec118 (update logo and nes features)
 }
 
 function boostOff() {
   if (!isBoosting) return;
   if (boostedVideo) boostedVideo.playbackRate = prevRate;
+<<<<<<< HEAD
+=======
+  if (boostTimer) {
+    window.clearInterval(boostTimer);
+    boostTimer = null;
+  }
+>>>>>>> bbec118 (update logo and nes features)
   boostedVideo = null;
   isBoosting = false;
 }
@@ -107,7 +178,11 @@ function applyHudPosition() {
   }
 
   const rect = v.getBoundingClientRect();
+<<<<<<< HEAD
   if (rect.width <= 0 || rect.height <= 0) {
+=======
+  if (rect.width <= 0 || rect.height <= 0 || !isVideoVisible(v)) {
+>>>>>>> bbec118 (update logo and nes features)
     hudEl.style.display = "none";
     return;
   }
@@ -196,8 +271,12 @@ function createHud() {
   updateHudValue();
 }
 
+<<<<<<< HEAD
 // Hold configured key to boost
 document.addEventListener("keydown", (e) => {
+=======
+function handleKeyDown(e) {
+>>>>>>> bbec118 (update logo and nes features)
   if (isTypingTarget(e.target)) return;
 
   if (e.code === settings.holdKeyCode) {
@@ -220,12 +299,25 @@ document.addEventListener("keydown", (e) => {
   if (e.code === settings.resetKeyCode) {
     resetPlaybackRate();
   }
+<<<<<<< HEAD
 });
 
 document.addEventListener("keyup", (e) => {
   if (e.code !== settings.holdKeyCode) return;
   boostOff();
 });
+=======
+}
+
+function handleKeyUp(e) {
+  if (e.code !== settings.holdKeyCode) return;
+  boostOff();
+}
+
+// Use capture phase so site handlers are less likely to block our shortcuts.
+window.addEventListener("keydown", handleKeyDown, true);
+window.addEventListener("keyup", handleKeyUp, true);
+>>>>>>> bbec118 (update logo and nes features)
 
 // Safety: if you alt-tab or the tab hides while holding, restore
 window.addEventListener("blur", boostOff);
@@ -295,6 +387,10 @@ chrome.runtime.onMessage.addListener((message) => {
 });
 
 createHud();
+<<<<<<< HEAD
+=======
+registerVideoTracking();
+>>>>>>> bbec118 (update logo and nes features)
 loadSettings();
 setInterval(() => {
   updateHudValue();
