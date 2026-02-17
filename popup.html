@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hold to Speed Up Video</title>
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        color-scheme: light;
+      }
+
+      body {
+        width: 300px;
+        margin: 0;
+        padding: 14px;
+        background: #f8fafc;
+        color: #0f172a;
+      }
+
+      h1 {
+        margin: 0 0 12px;
+        font-size: 16px;
+      }
+
+      .field {
+        margin-bottom: 12px;
+      }
+
+      label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .row {
+        display: flex;
+        gap: 8px;
+      }
+
+      input {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 13px;
+      }
+
+      input[readonly] {
+        background: #fff;
+        cursor: default;
+      }
+
+      button {
+        border: none;
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .row button {
+        background: #2563eb;
+        color: #fff;
+        white-space: nowrap;
+      }
+
+      #saveBtn {
+        width: 100%;
+        background: #0f766e;
+        color: #fff;
+        margin-top: 8px;
+      }
+
+      #resetNowBtn {
+        width: 100%;
+        background: #334155;
+        color: #fff;
+        margin-top: 8px;
+      }
+
+      .hint {
+        margin-top: 4px;
+        color: #475569;
+        font-size: 11px;
+      }
+
+      #status {
+        min-height: 16px;
+        margin-top: 8px;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Video Speed Hold</h1>
+
+    <div class="field">
+      <label>Hold key</label>
+      <div class="row">
+        <input id="holdKeyDisplay" type="text" readonly />
+        <button id="captureHoldBtn" type="button">Set key</button>
+      </div>
+      <div class="hint">Click Set key, then press the key you want.</div>
+    </div>
+
+    <div class="field">
+      <label for="speedInput">Boost speed</label>
+      <input id="boostSpeedInput" type="number" min="0.1" max="16" step="0.1" />
+      <div class="hint">Used while the key is held.</div>
+    </div>
+
+    <div class="field">
+      <label>Increase speed key</label>
+      <div class="row">
+        <input id="increaseKeyDisplay" type="text" readonly />
+        <button id="captureIncreaseBtn" type="button">Set key</button>
+      </div>
+      <div class="hint">Press to increase normal playback speed.</div>
+    </div>
+
+    <div class="field">
+      <label>Decrease speed key</label>
+      <div class="row">
+        <input id="decreaseKeyDisplay" type="text" readonly />
+        <button id="captureDecreaseBtn" type="button">Set key</button>
+      </div>
+      <div class="hint">Press to decrease normal playback speed.</div>
+    </div>
+
+    <div class="field">
+      <label>Reset speed key (to 1x)</label>
+      <div class="row">
+        <input id="resetKeyDisplay" type="text" readonly />
+        <button id="captureResetBtn" type="button">Set key</button>
+      </div>
+      <div class="hint">Press to force current video speed back to 1.0x.</div>
+    </div>
+
+    <div class="field">
+      <label for="stepInput">Increase/decrease step</label>
+      <input id="stepInput" type="number" min="0.1" max="4" step="0.1" />
+      <div class="hint">How much speed changes per key press.</div>
+    </div>
+
+    <button id="saveBtn" type="button">Save settings</button>
+    <button id="resetNowBtn" type="button">Reset active video to 1x</button>
+    <div id="status"></div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

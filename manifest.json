@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Hold to Speed Up Video",
+  "version": "1.2.0",
+  "description": "Hold a key to temporarily speed up HTML5 videos.",
+  "permissions": ["storage"],
+  "action": {
+    "default_title": "Hold to Speed Up Video",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ]
+}
