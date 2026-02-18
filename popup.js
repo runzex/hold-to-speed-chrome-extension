@@ -1,11 +1,4 @@
-const DEFAULTS = {
-  holdKeyCode: "Backslash",
-  boostRate: 3,
-  increaseKeyCode: "BracketRight",
-  decreaseKeyCode: "BracketLeft",
-  resetKeyCode: "Backquote",
-  speedStep: 0.25,
-};
+/* DEFAULT_SETTINGS is provided by constants.js */
 
 const holdKeyDisplay = document.getElementById("holdKeyDisplay");
 const increaseKeyDisplay = document.getElementById("increaseKeyDisplay");
@@ -23,10 +16,10 @@ const statusEl = document.getElementById("status");
 
 let pendingCaptureTarget = "";
 let selectedKeys = {
-  holdKeyCode: DEFAULTS.holdKeyCode,
-  increaseKeyCode: DEFAULTS.increaseKeyCode,
-  decreaseKeyCode: DEFAULTS.decreaseKeyCode,
-  resetKeyCode: DEFAULTS.resetKeyCode,
+  holdKeyCode: DEFAULT_SETTINGS.holdKeyCode,
+  increaseKeyCode: DEFAULT_SETTINGS.increaseKeyCode,
+  decreaseKeyCode: DEFAULT_SETTINGS.decreaseKeyCode,
+  resetKeyCode: DEFAULT_SETTINGS.resetKeyCode,
 };
 
 function setStatus(message, isError = false) {
@@ -49,16 +42,16 @@ function parseNumberInRange(raw, min, max) {
 }
 
 function loadSettings() {
-  chrome.storage.sync.get(DEFAULTS, (data) => {
+  chrome.storage.sync.get(DEFAULT_SETTINGS, (data) => {
     selectedKeys = {
-      holdKeyCode: data.holdKeyCode || DEFAULTS.holdKeyCode,
-      increaseKeyCode: data.increaseKeyCode || DEFAULTS.increaseKeyCode,
-      decreaseKeyCode: data.decreaseKeyCode || DEFAULTS.decreaseKeyCode,
-      resetKeyCode: data.resetKeyCode || DEFAULTS.resetKeyCode,
+      holdKeyCode: data.holdKeyCode || DEFAULT_SETTINGS.holdKeyCode,
+      increaseKeyCode: data.increaseKeyCode || DEFAULT_SETTINGS.increaseKeyCode,
+      decreaseKeyCode: data.decreaseKeyCode || DEFAULT_SETTINGS.decreaseKeyCode,
+      resetKeyCode: data.resetKeyCode || DEFAULT_SETTINGS.resetKeyCode,
     };
     renderKeyLabels();
-    boostSpeedInput.value = String(data.boostRate || DEFAULTS.boostRate);
-    stepInput.value = String(data.speedStep || DEFAULTS.speedStep);
+    boostSpeedInput.value = String(data.boostRate || DEFAULT_SETTINGS.boostRate);
+    stepInput.value = String(data.speedStep || DEFAULT_SETTINGS.speedStep);
   });
 }
 

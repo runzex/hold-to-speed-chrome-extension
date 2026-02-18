@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
+node --check "$ROOT/constants.js"
 node --check "$ROOT/content.js"
 node --check "$ROOT/popup.js"
 
