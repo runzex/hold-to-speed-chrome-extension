@@ -28,7 +28,7 @@ Control HTML5 video playback speed with keyboard shortcuts, including a hold-to-
 1. Open Chrome and go to `chrome://extensions`.
 2. Enable **Developer mode**.
 3. Click **Load unpacked**.
-4. Select this folder: `/Users/run/Desktop/video_speed_controller`.
+4. Select this folder: `/Users/USER_NAME/Desktop/video_speed_controller`.
 
 ## Usage
 
@@ -40,6 +40,19 @@ Control HTML5 video playback speed with keyboard shortcuts, including a hold-to-
    - Set **Boost speed** and **Increase/decrease step**.
    - Click **Save settings**.
    - Use **Reset active video to 1x** to reset the current tab's video immediately.
+
+## Validate Before Reloading
+
+Run:
+
+```bash
+./scripts/validate.sh
+```
+
+This checks:
+- JavaScript syntax
+- `manifest.json` validity
+- unresolved merge conflict markers
 
 ## HUD Notes
 

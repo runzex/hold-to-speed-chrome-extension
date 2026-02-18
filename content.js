@@ -1,11 +1,9 @@
 let isBoosting = false;
 let boostedVideo = null;
 let prevRate = 1;
-<<<<<<< HEAD
-=======
 let boostTimer = null;
 let lastSeenVideo = null;
->>>>>>> bbec118 (update logo and nes features)
+
 const DEFAULT_SETTINGS = {
   holdKeyCode: "Backslash",
   boostRate: 3.0,
@@ -16,6 +14,7 @@ const DEFAULT_SETTINGS = {
   hudX: 20,
   hudY: 20,
 };
+
 let settings = { ...DEFAULT_SETTINGS };
 let hudEl = null;
 let hudValueEl = null;
@@ -62,13 +61,6 @@ function findVideosDeep(root) {
   return videos;
 }
 
-<<<<<<< HEAD
-function getVideo() {
-  // Prefer a currently playing video, otherwise just grab the first one.
-  const vids = findVideosDeep(document);
-  if (vids.length === 0) return null;
-  return vids.find((v) => !v.paused) || vids[0];
-=======
 function isVideoVisible(v) {
   if (!v) return false;
   const rect = v.getBoundingClientRect();
@@ -80,7 +72,6 @@ function isVideoVisible(v) {
 }
 
 function getVideo() {
-  // Prefer a visible playing video, then any visible video, then fallback.
   const vids = findVideosDeep(document);
   if (vids.length > 0) {
     const chosen =
@@ -115,7 +106,6 @@ function registerVideoTracking() {
       true
     );
   }
->>>>>>> bbec118 (update logo and nes features)
 }
 
 function boostOn() {
@@ -127,8 +117,6 @@ function boostOn() {
   v.playbackRate = settings.boostRate;
   boostedVideo = v;
   isBoosting = true;
-<<<<<<< HEAD
-=======
   boostTimer = window.setInterval(() => {
     if (!isBoosting || !boostedVideo) return;
     if (Math.abs(boostedVideo.playbackRate - settings.boostRate) > 0.01) {
@@ -136,19 +124,15 @@ function boostOn() {
     }
     updateHudValue();
   }, 80);
->>>>>>> bbec118 (update logo and nes features)
 }
 
 function boostOff() {
   if (!isBoosting) return;
   if (boostedVideo) boostedVideo.playbackRate = prevRate;
-<<<<<<< HEAD
-=======
   if (boostTimer) {
     window.clearInterval(boostTimer);
     boostTimer = null;
   }
->>>>>>> bbec118 (update logo and nes features)
   boostedVideo = null;
   isBoosting = false;
 }
@@ -178,11 +162,7 @@ function applyHudPosition() {
   }
 
   const rect = v.getBoundingClientRect();
-<<<<<<< HEAD
-  if (rect.width <= 0 || rect.height <= 0) {
-=======
   if (rect.width <= 0 || rect.height <= 0 || !isVideoVisible(v)) {
->>>>>>> bbec118 (update logo and nes features)
     hudEl.style.display = "none";
     return;
   }
@@ -271,12 +251,7 @@ function createHud() {
   updateHudValue();
 }
 
-<<<<<<< HEAD
-// Hold configured key to boost
-document.addEventListener("keydown", (e) => {
-=======
 function handleKeyDown(e) {
->>>>>>> bbec118 (update logo and nes features)
   if (isTypingTarget(e.target)) return;
 
   if (e.code === settings.holdKeyCode) {
@@ -299,14 +274,6 @@ function handleKeyDown(e) {
   if (e.code === settings.resetKeyCode) {
     resetPlaybackRate();
   }
-<<<<<<< HEAD
-});
-
-document.addEventListener("keyup", (e) => {
-  if (e.code !== settings.holdKeyCode) return;
-  boostOff();
-});
-=======
 }
 
 function handleKeyUp(e) {
@@ -314,12 +281,9 @@ function handleKeyUp(e) {
   boostOff();
 }
 
-// Use capture phase so site handlers are less likely to block our shortcuts.
 window.addEventListener("keydown", handleKeyDown, true);
 window.addEventListener("keyup", handleKeyUp, true);
->>>>>>> bbec118 (update logo and nes features)
 
-// Safety: if you alt-tab or the tab hides while holding, restore
 window.addEventListener("blur", boostOff);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) boostOff();
@@ -376,7 +340,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
     applyHudPosition();
   }
 
-  // If settings changed mid-hold, safely stop current boost.
   boostOff();
   updateHudValue();
 });
@@ -387,10 +350,7 @@ chrome.runtime.onMessage.addListener((message) => {
 });
 
 createHud();
-<<<<<<< HEAD
-=======
 registerVideoTracking();
->>>>>>> bbec118 (update logo and nes features)
 loadSettings();
 setInterval(() => {
   updateHudValue();
