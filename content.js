@@ -1,24 +1,71 @@
+/* DEFAULT_SETTINGS is provided by constants.js */
+
 let isBoosting = false;
 let boostedVideo = null;
 let prevRate = 1;
-<<<<<<< HEAD
-=======
 let boostTimer = null;
 let lastSeenVideo = null;
->>>>>>> bbec118 (update logo and nes features)
-const DEFAULT_SETTINGS = {
-  holdKeyCode: "Backslash",
-  boostRate: 3.0,
-  increaseKeyCode: "BracketRight",
-  decreaseKeyCode: "BracketLeft",
-  resetKeyCode: "Backquote",
-  speedStep: 0.25,
-  hudX: 20,
-  hudY: 20,
-};
+
 let settings = { ...DEFAULT_SETTINGS };
 let hudEl = null;
 let hudValueEl = null;
+
+/* ---------- video cache ---------- */
+
+const videoCache = new Set();
+
+function findVideosDeep(root) {
+  const videos = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+
+  let node = root;
+  while (node) {
+    if (node.tagName === "VIDEO") videos.push(node);
+    if (node.shadowRoot) videos.push(...findVideosDeep(node.shadowRoot));
+    node = walker.nextNode();
+  }
+
+  return videos;
+}
+
+function rebuildVideoCache() {
+  videoCache.clear();
+  for (const v of findVideosDeep(document)) videoCache.add(v);
+}
+
+function addVideosFromNode(root) {
+  if (root.tagName === "VIDEO") videoCache.add(root);
+  if (root.querySelectorAll) {
+    for (const v of root.querySelectorAll("video")) videoCache.add(v);
+  }
+  if (root.shadowRoot) {
+    for (const v of findVideosDeep(root.shadowRoot)) videoCache.add(v);
+  }
+}
+
+function pruneVideoCache() {
+  for (const v of videoCache) {
+    if (!document.contains(v)) videoCache.delete(v);
+  }
+}
+
+const videoCacheObserver = new MutationObserver((mutations) => {
+  let changed = false;
+  for (const m of mutations) {
+    for (const added of m.addedNodes) {
+      if (added.nodeType !== 1) continue;
+      addVideosFromNode(added);
+      changed = true;
+    }
+    if (m.removedNodes.length > 0) {
+      pruneVideoCache();
+      changed = true;
+    }
+  }
+  if (changed) attachVideoListeners();
+});
+
+/* ---------- settings ---------- */
 
 function parseSettingNumber(value, fallback, min, max) {
   if (!Number.isFinite(value)) return fallback;
@@ -42,33 +89,14 @@ function loadSettings() {
   });
 }
 
+/* ---------- helpers ---------- */
+
 function isTypingTarget(el) {
   if (!el) return false;
   const tag = el.tagName;
   return tag === "INPUT" || tag === "TEXTAREA" || el.isContentEditable;
 }
 
-function findVideosDeep(root) {
-  const videos = [];
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
-
-  let node = root;
-  while (node) {
-    if (node.tagName === "VIDEO") videos.push(node);
-    if (node.shadowRoot) videos.push(...findVideosDeep(node.shadowRoot));
-    node = walker.nextNode();
-  }
-
-  return videos;
-}
-
-<<<<<<< HEAD
-function getVideo() {
-  // Prefer a currently playing video, otherwise just grab the first one.
-  const vids = findVideosDeep(document);
-  if (vids.length === 0) return null;
-  return vids.find((v) => !v.paused) || vids[0];
-=======
 function isVideoVisible(v) {
   if (!v) return false;
   const rect = v.getBoundingClientRect();
@@ -80,8 +108,7 @@ function isVideoVisible(v) {
 }
 
 function getVideo() {
-  // Prefer a visible playing video, then any visible video, then fallback.
-  const vids = findVideosDeep(document);
+  const vids = [...videoCache];
   if (vids.length > 0) {
     const chosen =
       vids.find((v) => !v.paused && isVideoVisible(v)) ||
@@ -103,6 +130,18 @@ function eventVideoTarget(event) {
   return null;
 }
 
+/* ---------- video event tracking ---------- */
+
+const trackedVideos = new WeakSet();
+
+function attachVideoListeners() {
+  for (const v of videoCache) {
+    if (trackedVideos.has(v)) continue;
+    trackedVideos.add(v);
+    v.addEventListener("ratechange", () => updateHudValue());
+  }
+}
+
 function registerVideoTracking() {
   const events = ["play", "playing", "ratechange", "loadedmetadata"];
   for (const eventName of events) {
@@ -110,13 +149,18 @@ function registerVideoTracking() {
       eventName,
       (event) => {
         const v = eventVideoTarget(event);
-        if (v) lastSeenVideo = v;
+        if (v) {
+          lastSeenVideo = v;
+          videoCache.add(v);
+        }
+        if (eventName === "ratechange") updateHudValue();
       },
       true
     );
   }
->>>>>>> bbec118 (update logo and nes features)
 }
+
+/* ---------- boost ---------- */
 
 function boostOn() {
   if (isBoosting) return;
@@ -127,30 +171,33 @@ function boostOn() {
   v.playbackRate = settings.boostRate;
   boostedVideo = v;
   isBoosting = true;
-<<<<<<< HEAD
-=======
   boostTimer = window.setInterval(() => {
     if (!isBoosting || !boostedVideo) return;
     if (Math.abs(boostedVideo.playbackRate - settings.boostRate) > 0.01) {
       boostedVideo.playbackRate = settings.boostRate;
     }
-    updateHudValue();
   }, 80);
->>>>>>> bbec118 (update logo and nes features)
 }
 
 function boostOff() {
   if (!isBoosting) return;
   if (boostedVideo) boostedVideo.playbackRate = prevRate;
-<<<<<<< HEAD
-=======
   if (boostTimer) {
     window.clearInterval(boostTimer);
     boostTimer = null;
   }
->>>>>>> bbec118 (update logo and nes features)
   boostedVideo = null;
   isBoosting = false;
+}
+
+/* ---------- speed control ---------- */
+
+function flashHud() {
+  if (!hudEl) return;
+  hudEl.classList.remove("__vsc-hud--flash");
+  /* force reflow so re-adding the class restarts the animation */
+  void hudEl.offsetWidth;
+  hudEl.classList.add("__vsc-hud--flash");
 }
 
 function adjustPlaybackRate(delta) {
@@ -158,7 +205,7 @@ function adjustPlaybackRate(delta) {
   if (!v) return;
   const nextRate = Math.min(16, Math.max(0.1, v.playbackRate + delta));
   v.playbackRate = nextRate;
-  updateHudValue();
+  flashHud();
 }
 
 function resetPlaybackRate() {
@@ -166,7 +213,48 @@ function resetPlaybackRate() {
   const v = getVideo();
   if (!v) return;
   v.playbackRate = 1;
-  updateHudValue();
+  flashHud();
+}
+
+/* ---------- HUD ---------- */
+
+const HUD_CSS = `
+.__vsc-hud {
+  position: fixed;
+  z-index: 2147483647;
+  background: rgba(15, 23, 42, 0.32);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 4px 6px;
+  color: #ffffff;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-width: 64px;
+  user-select: none;
+  box-sizing: border-box;
+  text-align: center;
+  cursor: move;
+  transition: background 0.15s ease;
+}
+.__vsc-hud__value {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+@keyframes __vsc-flash {
+  0%   { background: rgba(59, 130, 246, 0.55); }
+  100% { background: rgba(15, 23, 42, 0.32); }
+}
+.__vsc-hud--flash {
+  animation: __vsc-flash 0.3s ease-out;
+}
+`;
+
+function injectHudStyles() {
+  const style = document.createElement("style");
+  style.textContent = HUD_CSS;
+  (document.head || document.documentElement).appendChild(style);
 }
 
 function applyHudPosition() {
@@ -178,11 +266,7 @@ function applyHudPosition() {
   }
 
   const rect = v.getBoundingClientRect();
-<<<<<<< HEAD
-  if (rect.width <= 0 || rect.height <= 0) {
-=======
   if (rect.width <= 0 || rect.height <= 0 || !isVideoVisible(v)) {
->>>>>>> bbec118 (update logo and nes features)
     hudEl.style.display = "none";
     return;
   }
@@ -209,26 +293,13 @@ function updateHudValue() {
 function createHud() {
   if (hudEl) return;
 
+  injectHudStyles();
+
   hudEl = document.createElement("div");
-  hudEl.style.position = "fixed";
-  hudEl.style.zIndex = "2147483647";
-  hudEl.style.background = "rgba(15, 23, 42, 0.32)";
-  hudEl.style.backdropFilter = "blur(4px)";
-  hudEl.style.border = "1px solid rgba(255,255,255,0.25)";
-  hudEl.style.borderRadius = "10px";
-  hudEl.style.padding = "4px 6px";
-  hudEl.style.color = "#ffffff";
-  hudEl.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
-  hudEl.style.minWidth = "64px";
-  hudEl.style.userSelect = "none";
-  hudEl.style.boxSizing = "border-box";
-  hudEl.style.textAlign = "center";
-  hudEl.style.cursor = "move";
+  hudEl.className = "__vsc-hud";
 
   hudValueEl = document.createElement("div");
-  hudValueEl.style.fontSize = "18px";
-  hudValueEl.style.fontWeight = "700";
-  hudValueEl.style.lineHeight = "1";
+  hudValueEl.className = "__vsc-hud__value";
 
   let dragging = false;
   let dragOffsetX = 0;
@@ -265,18 +336,19 @@ function createHud() {
     chrome.storage.sync.set({ hudX: settings.hudX, hudY: settings.hudY });
   });
 
+  hudEl.addEventListener("animationend", () => {
+    hudEl.classList.remove("__vsc-hud--flash");
+  });
+
   hudEl.appendChild(hudValueEl);
   document.documentElement.appendChild(hudEl);
   applyHudPosition();
   updateHudValue();
 }
 
-<<<<<<< HEAD
-// Hold configured key to boost
-document.addEventListener("keydown", (e) => {
-=======
+/* ---------- keyboard ---------- */
+
 function handleKeyDown(e) {
->>>>>>> bbec118 (update logo and nes features)
   if (isTypingTarget(e.target)) return;
 
   if (e.code === settings.holdKeyCode) {
@@ -299,14 +371,6 @@ function handleKeyDown(e) {
   if (e.code === settings.resetKeyCode) {
     resetPlaybackRate();
   }
-<<<<<<< HEAD
-});
-
-document.addEventListener("keyup", (e) => {
-  if (e.code !== settings.holdKeyCode) return;
-  boostOff();
-});
-=======
 }
 
 function handleKeyUp(e) {
@@ -314,16 +378,19 @@ function handleKeyUp(e) {
   boostOff();
 }
 
-// Use capture phase so site handlers are less likely to block our shortcuts.
 window.addEventListener("keydown", handleKeyDown, true);
 window.addEventListener("keyup", handleKeyUp, true);
->>>>>>> bbec118 (update logo and nes features)
 
-// Safety: if you alt-tab or the tab hides while holding, restore
+/* ---------- event-driven HUD positioning ---------- */
+
 window.addEventListener("blur", boostOff);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) boostOff();
 });
+window.addEventListener("scroll", applyHudPosition, true);
+window.addEventListener("resize", applyHudPosition);
+
+/* ---------- storage sync ---------- */
 
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area !== "sync") return;
@@ -376,7 +443,6 @@ chrome.storage.onChanged.addListener((changes, area) => {
     applyHudPosition();
   }
 
-  // If settings changed mid-hold, safely stop current boost.
   boostOff();
   updateHudValue();
 });
@@ -386,13 +452,21 @@ chrome.runtime.onMessage.addListener((message) => {
   resetPlaybackRate();
 });
 
+/* ---------- init ---------- */
+
 createHud();
-<<<<<<< HEAD
-=======
 registerVideoTracking();
->>>>>>> bbec118 (update logo and nes features)
+rebuildVideoCache();
+attachVideoListeners();
 loadSettings();
+
+videoCacheObserver.observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+});
+
+/* lightweight safety-net poll (every 2s instead of 300ms) */
 setInterval(() => {
   updateHudValue();
   applyHudPosition();
-}, 300);
+}, 2000);
