@@ -133,7 +133,7 @@ resetNowBtn.addEventListener("click", () => {
         setStatus("Open a tab with a video first.", true);
         return;
       }
-      setStatus("Reset to 1x.");
+      setStatus("Toggled 1x/last speed.");
     });
   });
 });

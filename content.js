@@ -5,6 +5,7 @@ let boostedVideo = null;
 let prevRate = 1;
 let boostTimer = null;
 let lastSeenVideo = null;
+const resetRateMemory = new WeakMap();
 
 let settings = { ...DEFAULT_SETTINGS };
 let hudEl = null;
@@ -208,11 +209,26 @@ function adjustPlaybackRate(delta) {
   flashHud();
 }
 
-function resetPlaybackRate() {
+function toggleResetPlaybackRate() {
   boostOff();
   const v = getVideo();
   if (!v) return;
-  v.playbackRate = 1;
+
+  const currentRate = v.playbackRate;
+  const isAtOne = Math.abs(currentRate - 1) < 0.01;
+  const rememberedRate = resetRateMemory.get(v);
+
+  if (!isAtOne) {
+    resetRateMemory.set(v, currentRate);
+    v.playbackRate = 1;
+    flashHud();
+    return;
+  }
+
+  if (Number.isFinite(rememberedRate) && Math.abs(rememberedRate - 1) >= 0.01) {
+    v.playbackRate = rememberedRate;
+  }
+
   flashHud();
 }
 
@@ -369,7 +385,7 @@ function handleKeyDown(e) {
   }
 
   if (e.code === settings.resetKeyCode) {
-    resetPlaybackRate();
+    toggleResetPlaybackRate();
   }
 }
 
@@ -449,7 +465,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 
 chrome.runtime.onMessage.addListener((message) => {
   if (!message || message.type !== "RESET_SPEED_NOW") return;
-  resetPlaybackRate();
+  toggleResetPlaybackRate();
 });
 
 /* ---------- init ---------- */
