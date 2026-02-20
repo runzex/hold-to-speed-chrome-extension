@@ -6,9 +6,11 @@ Control HTML5 video playback speed with keyboard shortcuts, including a hold-to-
 
 - Hold a key to temporarily boost playback speed.
 - Increase/decrease playback speed with dedicated keys.
-- Reset playback speed to `1x` with a key.
+- Toggle playback speed between `1x` and previous speed with a key.
+- Seek backward/forward with dedicated keys.
 - Draggable on-video HUD showing current playback rate.
-- Popup UI to configure keys, boost speed, and speed step.
+- Popup UI to configure keys, boost speed, speed step, and seek step.
+- Reset all settings to defaults from the popup.
 - Saves settings in `chrome.storage.sync`.
 
 ## Default Shortcuts
@@ -16,12 +18,15 @@ Control HTML5 video playback speed with keyboard shortcuts, including a hold-to-
 - Hold boost: `Backslash`
 - Increase speed: `BracketRight` (`]`)
 - Decrease speed: `BracketLeft` (`[`)
-- Reset to 1x: `Backquote` (`` ` ``)
+- Toggle 1x/previous: `Backquote` (`` ` ``)
+- Seek backward: `Comma` (`,`)
+- Seek forward: `Period` (`.`)
 
 ## Default Values
 
 - Boost speed: `3.0`
 - Speed step: `0.25`
+- Seek step: `5` seconds
 
 ## Install (Developer Mode)
 
@@ -37,9 +42,9 @@ Control HTML5 video playback speed with keyboard shortcuts, including a hold-to-
 3. Click the extension icon to open settings.
 4. In the popup:
    - Click **Set key** and press a key to capture a shortcut.
-   - Set **Boost speed** and **Increase/decrease step**.
+   - Set **Boost speed**, **Increase/decrease step**, and **Seek step (seconds)**.
    - Click **Save settings**.
-   - Use **Reset active video to 1x** to reset the current tab's video immediately.
+   - Use **Reset to default settings** to restore all defaults.
 
 ## Validate Before Reloading
 
@@ -60,8 +65,18 @@ This checks:
 - You can drag it to reposition it over the video.
 - Position is saved and reused.
 
+## Project Files
+
+- `/Users/run/Desktop/video_speed_controller/manifest.json` - Extension manifest
+- `/Users/run/Desktop/video_speed_controller/constants.js` - Shared default settings
+- `/Users/run/Desktop/video_speed_controller/content.js` - Video control + keyboard + HUD logic
+- `/Users/run/Desktop/video_speed_controller/content.css` - HUD styles
+- `/Users/run/Desktop/video_speed_controller/popup.html` - Popup UI
+- `/Users/run/Desktop/video_speed_controller/popup.js` - Popup behavior/settings
+- `/Users/run/Desktop/video_speed_controller/scripts/validate.sh` - Local validation script
+
 ## Troubleshooting
 
 - If shortcuts do not work, make sure the page has an HTML5 `<video>` element.
 - If key capture does not update, click a **Set key** button again and press the key once.
-- If reset from popup fails, open a tab containing a video and try again.
+- If the popup shows old errors, reload the extension in `chrome://extensions` and reopen the popup.
