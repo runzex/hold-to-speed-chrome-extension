@@ -5,6 +5,7 @@ let boostedVideo = null;
 let prevRate = 1;
 let boostTimer = null;
 let lastSeenVideo = null;
+const resetRateMemory = new WeakMap();
 
 let settings = { ...DEFAULT_SETTINGS };
 let hudEl = null;
@@ -34,18 +35,17 @@ function rebuildVideoCache() {
 }
 
 function addVideosFromNode(root) {
-  if (root.tagName === "VIDEO") videoCache.add(root);
-  if (root.querySelectorAll) {
-    for (const v of root.querySelectorAll("video")) videoCache.add(v);
-  }
-  if (root.shadowRoot) {
-    for (const v of findVideosDeep(root.shadowRoot)) videoCache.add(v);
+  for (const v of findVideosDeep(root)) {
+    videoCache.add(v);
   }
 }
 
 function pruneVideoCache() {
   for (const v of videoCache) {
-    if (!document.contains(v)) videoCache.delete(v);
+    if (!v.isConnected) videoCache.delete(v);
+  }
+  if (lastSeenVideo && !lastSeenVideo.isConnected) {
+    lastSeenVideo = null;
   }
 }
 
@@ -81,7 +81,15 @@ function loadSettings() {
       increaseKeyCode: data.increaseKeyCode || DEFAULT_SETTINGS.increaseKeyCode,
       decreaseKeyCode: data.decreaseKeyCode || DEFAULT_SETTINGS.decreaseKeyCode,
       resetKeyCode: data.resetKeyCode || DEFAULT_SETTINGS.resetKeyCode,
+      seekBackwardKeyCode: data.seekBackwardKeyCode || DEFAULT_SETTINGS.seekBackwardKeyCode,
+      seekForwardKeyCode: data.seekForwardKeyCode || DEFAULT_SETTINGS.seekForwardKeyCode,
       speedStep: parseSettingNumber(data.speedStep, DEFAULT_SETTINGS.speedStep, 0.1, 4),
+      seekStepSeconds: parseSettingNumber(
+        data.seekStepSeconds,
+        DEFAULT_SETTINGS.seekStepSeconds,
+        1,
+        120
+      ),
       hudX: parseSettingNumber(data.hudX, DEFAULT_SETTINGS.hudX, 0, 100000),
       hudY: parseSettingNumber(data.hudY, DEFAULT_SETTINGS.hudY, 0, 100000),
     };
@@ -208,53 +216,46 @@ function adjustPlaybackRate(delta) {
   flashHud();
 }
 
-function resetPlaybackRate() {
+function toggleResetPlaybackRate() {
   boostOff();
   const v = getVideo();
   if (!v) return;
-  v.playbackRate = 1;
+
+  const currentRate = v.playbackRate;
+  const isAtOne = Math.abs(currentRate - 1) < 0.01;
+  const rememberedRate = resetRateMemory.get(v);
+
+  if (!isAtOne) {
+    resetRateMemory.set(v, currentRate);
+    v.playbackRate = 1;
+    flashHud();
+    return;
+  }
+
+  if (Number.isFinite(rememberedRate) && Math.abs(rememberedRate - 1) >= 0.01) {
+    v.playbackRate = rememberedRate;
+  }
+
   flashHud();
+}
+
+function seekBySeconds(deltaSeconds) {
+  const v = getVideo();
+  if (!v) return false;
+  if (!Number.isFinite(deltaSeconds) || deltaSeconds === 0) return false;
+
+  const duration = Number.isFinite(v.duration) ? v.duration : Infinity;
+  const nextTime = Math.max(0, Math.min(duration, v.currentTime + deltaSeconds));
+  v.currentTime = nextTime;
+  return true;
 }
 
 /* ---------- HUD ---------- */
 
-const HUD_CSS = `
-.__vsc-hud {
-  position: fixed;
-  z-index: 2147483647;
-  background: rgba(15, 23, 42, 0.32);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 10px;
-  padding: 4px 6px;
-  color: #ffffff;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  min-width: 64px;
-  user-select: none;
-  box-sizing: border-box;
-  text-align: center;
-  cursor: move;
-  transition: background 0.15s ease;
-}
-.__vsc-hud__value {
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1;
-}
-@keyframes __vsc-flash {
-  0%   { background: rgba(59, 130, 246, 0.55); }
-  100% { background: rgba(15, 23, 42, 0.32); }
-}
-.__vsc-hud--flash {
-  animation: __vsc-flash 0.3s ease-out;
-}
-`;
+// HUD_CSS has been migrated to content.css
 
 function injectHudStyles() {
-  const style = document.createElement("style");
-  style.textContent = HUD_CSS;
-  (document.head || document.documentElement).appendChild(style);
+  // Styles are injected via content.css in manifest.json to avoid inline CSP blocking
 }
 
 function applyHudPosition() {
@@ -348,33 +349,63 @@ function createHud() {
 
 /* ---------- keyboard ---------- */
 
+function consumeShortcutEvent(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
 function handleKeyDown(e) {
   if (isTypingTarget(e.target)) return;
 
-  if (e.code === settings.holdKeyCode) {
+  const code = e.code;
+
+  if (code === settings.holdKeyCode) {
+    consumeShortcutEvent(e);
     if (e.repeat) return;
     boostOn();
     return;
   }
 
+  const isManagedShortcut =
+    code === settings.increaseKeyCode ||
+    code === settings.decreaseKeyCode ||
+    code === settings.resetKeyCode ||
+    code === settings.seekBackwardKeyCode ||
+    code === settings.seekForwardKeyCode;
+
+  if (!isManagedShortcut) return;
+  consumeShortcutEvent(e);
   if (e.repeat) return;
-  if (e.code === settings.increaseKeyCode) {
+
+  if (code === settings.increaseKeyCode) {
     adjustPlaybackRate(settings.speedStep);
     return;
   }
 
-  if (e.code === settings.decreaseKeyCode) {
+  if (code === settings.decreaseKeyCode) {
     adjustPlaybackRate(-settings.speedStep);
     return;
   }
 
-  if (e.code === settings.resetKeyCode) {
-    resetPlaybackRate();
+  if (code === settings.resetKeyCode) {
+    toggleResetPlaybackRate();
+    return;
+  }
+
+  if (code === settings.seekBackwardKeyCode) {
+    seekBySeconds(-settings.seekStepSeconds);
+    return;
+  }
+
+  if (code === settings.seekForwardKeyCode) {
+    seekBySeconds(settings.seekStepSeconds);
   }
 }
 
 function handleKeyUp(e) {
+  if (isTypingTarget(e.target)) return;
   if (e.code !== settings.holdKeyCode) return;
+  consumeShortcutEvent(e);
   boostOff();
 }
 
@@ -424,12 +455,31 @@ chrome.storage.onChanged.addListener((changes, area) => {
     settings.resetKeyCode = key || DEFAULT_SETTINGS.resetKeyCode;
   }
 
+  if (changes.seekBackwardKeyCode) {
+    const key = changes.seekBackwardKeyCode.newValue;
+    settings.seekBackwardKeyCode = key || DEFAULT_SETTINGS.seekBackwardKeyCode;
+  }
+
+  if (changes.seekForwardKeyCode) {
+    const key = changes.seekForwardKeyCode.newValue;
+    settings.seekForwardKeyCode = key || DEFAULT_SETTINGS.seekForwardKeyCode;
+  }
+
   if (changes.speedStep) {
     settings.speedStep = parseSettingNumber(
       changes.speedStep.newValue,
       DEFAULT_SETTINGS.speedStep,
       0.1,
       4
+    );
+  }
+
+  if (changes.seekStepSeconds) {
+    settings.seekStepSeconds = parseSettingNumber(
+      changes.seekStepSeconds.newValue,
+      DEFAULT_SETTINGS.seekStepSeconds,
+      1,
+      120
     );
   }
 
@@ -448,8 +498,16 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (!message || message.type !== "RESET_SPEED_NOW") return;
-  resetPlaybackRate();
+  if (!message) return;
+
+  if (message.type === "RESET_SPEED_NOW") {
+    toggleResetPlaybackRate();
+    return;
+  }
+
+  if (message.type === "SEEK_BY") {
+    seekBySeconds(Number(message.delta));
+  }
 });
 
 /* ---------- init ---------- */

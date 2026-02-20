@@ -1,0 +1,30 @@
+.__vsc-hud {
+  position: fixed;
+  z-index: 2147483647;
+  background: rgba(15, 23, 42, 0.32);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 10px;
+  padding: 4px 6px;
+  color: #ffffff;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  min-width: 64px;
+  user-select: none;
+  box-sizing: border-box;
+  text-align: center;
+  cursor: move;
+  transition: background 0.15s ease;
+}
+.__vsc-hud__value {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+@keyframes __vsc-flash {
+  0%   { background: rgba(59, 130, 246, 0.55); }
+  100% { background: rgba(15, 23, 42, 0.32); }
+}
+.__vsc-hud--flash {
+  animation: __vsc-flash 0.3s ease-out;
+}
