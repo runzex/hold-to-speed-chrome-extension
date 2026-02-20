@@ -67,13 +67,13 @@ This checks:
 
 ## Project Files
 
-- `/Users/run/Desktop/video_speed_controller/manifest.json` - Extension manifest
-- `/Users/run/Desktop/video_speed_controller/constants.js` - Shared default settings
-- `/Users/run/Desktop/video_speed_controller/content.js` - Video control + keyboard + HUD logic
-- `/Users/run/Desktop/video_speed_controller/content.css` - HUD styles
-- `/Users/run/Desktop/video_speed_controller/popup.html` - Popup UI
-- `/Users/run/Desktop/video_speed_controller/popup.js` - Popup behavior/settings
-- `/Users/run/Desktop/video_speed_controller/scripts/validate.sh` - Local validation script
+- `video_speed_controller/manifest.json` - Extension manifest
+- `video_speed_controller/constants.js` - Shared default settings
+- `video_speed_controller/content.js` - Video control + keyboard + HUD logic
+- `video_speed_controller/content.css` - HUD styles
+- `video_speed_controller/popup.html` - Popup UI
+- `video_speed_controller/popup.js` - Popup behavior/settings
+- `video_speed_controller/scripts/validate.sh` - Local validation script
 
 ## Troubleshooting
 
