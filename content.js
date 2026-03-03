@@ -161,7 +161,8 @@ function registerVideoTracking() {
           lastSeenVideo = v;
           videoCache.add(v);
         }
-        if (eventName === "ratechange") updateHudValue();
+        updateHudValue();
+        applyHudPosition();
       },
       true
     );
@@ -254,8 +255,35 @@ function seekBySeconds(deltaSeconds) {
 
 // HUD_CSS has been migrated to content.css
 
-function injectHudStyles() {
-  // Styles are injected via content.css in manifest.json to avoid inline CSP blocking
+function moveHudToTarget() {
+  if (!hudEl) return;
+  const v = getVideo();
+  const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+
+  let target = document.documentElement;
+  if (fsEl) {
+    // If the video itself is the fullscreen element, we try to append to its parent.
+    // Most sites use a container div, but some might use the video tag directly.
+    if (fsEl.tagName === "VIDEO" && fsEl.parentElement) {
+      target = fsEl.parentElement;
+    } else {
+      target = fsEl;
+    }
+  } else if (v && v.parentElement) {
+    // If we're not in native full-screen, try to be a sibling of the video
+    // This helps with "web full-screen" and stacking context issues
+    target = v.parentElement;
+  }
+
+  if (hudEl.parentElement !== target) {
+    try {
+      target.appendChild(hudEl);
+    } catch (e) {
+      if (hudEl.parentElement !== document.documentElement) {
+        document.documentElement.appendChild(hudEl);
+      }
+    }
+  }
 }
 
 function applyHudPosition() {
@@ -272,7 +300,27 @@ function applyHudPosition() {
     return;
   }
 
+  moveHudToTarget();
   hudEl.style.display = "block";
+
+  // If we are inside the video's parent, we might need to adjust for its offset
+  // because position: fixed is relative to the nearest ancestor with a transform/filter/etc.
+  const containerRect = hudEl.parentElement.getBoundingClientRect();
+  const isInsideSpecialContainer =
+    hudEl.parentElement !== document.documentElement &&
+    hudEl.parentElement !== document.body &&
+    (containerRect.left !== 0 ||
+      containerRect.top !== 0 ||
+      containerRect.width !== window.innerWidth ||
+      containerRect.height !== window.innerHeight);
+
+  let left = rect.left + settings.hudX;
+  let top = rect.top + settings.hudY;
+
+  if (isInsideSpecialContainer) {
+    left -= containerRect.left;
+    top -= containerRect.top;
+  }
 
   const maxX = Math.max(0, rect.width - hudEl.offsetWidth);
   const maxY = Math.max(0, rect.height - hudEl.offsetHeight);
@@ -280,8 +328,8 @@ function applyHudPosition() {
   settings.hudX = Math.min(maxX, Math.max(0, settings.hudX));
   settings.hudY = Math.min(maxY, Math.max(0, settings.hudY));
 
-  hudEl.style.left = `${rect.left + settings.hudX}px`;
-  hudEl.style.top = `${rect.top + settings.hudY}px`;
+  hudEl.style.left = `${left}px`;
+  hudEl.style.top = `${top}px`;
 }
 
 function updateHudValue() {
@@ -293,8 +341,6 @@ function updateHudValue() {
 
 function createHud() {
   if (hudEl) return;
-
-  injectHudStyles();
 
   hudEl = document.createElement("div");
   hudEl.className = "__vsc-hud";
@@ -417,6 +463,14 @@ window.addEventListener("keyup", handleKeyUp, true);
 window.addEventListener("blur", boostOff);
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) boostOff();
+});
+document.addEventListener("fullscreenchange", () => {
+  moveHudToTarget();
+  applyHudPosition();
+});
+document.addEventListener("webkitfullscreenchange", () => {
+  moveHudToTarget();
+  applyHudPosition();
 });
 window.addEventListener("scroll", applyHudPosition, true);
 window.addEventListener("resize", applyHudPosition);
